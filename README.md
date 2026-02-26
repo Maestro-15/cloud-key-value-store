@@ -25,4 +25,4 @@ pip install -r requirements.txt
 ## How to run it
 
 uvicorn server:app --port 8080 \
-python3 benchmark.py
+python benchmark.py
