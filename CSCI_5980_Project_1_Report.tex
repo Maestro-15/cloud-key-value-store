@@ -1,5 +1,7 @@
 \documentclass[12pt]{article}
 
+\usepackage{url}
+\usepackage{hyperref}
 \usepackage{titlesec}
 \titleformat{\section}
 {\normalfont\small\bfseries}
@@ -30,7 +32,7 @@ Spring 2026
 % \maketitle
 
 \section*{Design Decisions}
-For this assignment, we used Python (high-level language allows for more focus on system design vs. low-level details, and easier to import libs to Python), and FastAPI (easy to use, lightweight, quick to set up). The data is stored in a Python dictionary, which keeps the program simple and efficient.
+For this \href{https://github.com/Maestro-15/cloud-key-value-store.git}{assignment}, we used Python (high-level language allows for more focus on system design vs. low-level details, and easier to import libs to Python), and FastAPI (easy to use, lightweight, quick to set up). The data is stored in a Python dictionary, which keeps the program simple and efficient.
 
 The server is able to handle multiple requests at the same time. We used a global lock to ensure that only one thread can modify the store at a time. This prevents problems when two requests try to modify the same key at the same time. This approach is simple and works well for a single-server system, even though it would not scale well to a larger system.
 
@@ -50,5 +52,6 @@ One challenge was making sure the shared data stayed consistent when we had mult
 We could improve performance by reducing disk writes or using better locking. We could lock by key instead of just setting a global lock.
 
 % Other possible improvements include adding replication, authentication, or key expiration.
+\url
 
 \end{document}
