@@ -7,11 +7,13 @@ import requests
 import os
 import xxhash
 import logging
+import sys
 
 app = FastAPI()
 
 # Env. Config. Stuff.
-PORT = int(os.getenv("PORT", 8001))
+# PORT = int(os.getenv("PORT", 8001))
+PORT = int(sys.argv[-1])
 
 NODES = [
     "http://localhost:8001",
@@ -61,119 +63,140 @@ hash_ring = ConsistentHash(NODES)
 store = {}
 
 # Lock by key not globally like before.
-NUM_LOCKS = 64
+NUM_LOCKS = 256
 locks = [threading.Lock() for _ in range(NUM_LOCKS)]
 
 def get_lock(key):
     return locks[hash(key) % NUM_LOCKS]
 
+# Keep the thingy open instead of having to handshake each request.
+session = requests.Session()
+
 # The disk writes.
 DATA_FILE = f"data_{PORT}.json"
 data_changed_bool = False
 
+# Log file.
+LOG_FILE = f"log_{PORT}.txt"
+
+def log_write(op, key, value=None):
+    with open(LOG_FILE, "a") as f:
+        if op == "PUT":
+            f.write(f"PUT {key} {value}\n")
+        elif op == "DELETE":
+            f.write(f"DELETE {key}\n")
+
 def load_from_disk():
     global store
+    store = {}
+
     try:
-        with open(DATA_FILE, "r") as f:
-            store = json.load(f)
-            logging.info("Loaded %d keys from disk", len(store))
+        with open(LOG_FILE, "r") as f:
+            for line in f:
+                parts = line.strip().split()
+
+                if parts[0] == "PUT":
+                    _, key, value = parts
+                    store[key] = value
+                elif parts[0] == "DELETE":
+                    _, key = parts
+                    store.pop(key, None)
     except FileNotFoundError:
-        store = {}
-        logging.info("No data.json found, starting empty")
+        pass
 
-def save_to_disk():
-    with open(DATA_FILE, "w") as f:
-        json.dump(store, f)
+# def load_from_disk():
+#     global store
+#     try:
+#         with open(DATA_FILE, "r") as f:
+#             store = json.load(f)
+#     except FileNotFoundError:
+#         store = {}
 
-def save_bg():
-    global data_changed_bool
-    while True:
-        time.sleep(1)
-        if data_changed_bool:
-            try:
-                save_to_disk()
-                data_changed_bool = False
-            except:
-                pass
+# def save_to_disk():
+#     with open(DATA_FILE, "w") as f:
+#         json.dump(store, f)
 
-threading.Thread(target=save_bg(), daemon=True).start()
+# def save_bg():
+#     global data_changed_bool
+#     while True:
+#         time.sleep(2)
+#         if data_changed_bool:
+#             try:
+#                 save_to_disk()
+#                 data_changed_bool = False
+#             except:
+#                 pass
+
+# threading.Thread(target=save_bg, daemon=True).start()
 load_from_disk()
 
-# We need a 
-def local_put(key, value):
+# Methods for Local Server w/o needing to route.
+@app.post("/_local/{key}")
+def local_put(key: str, body: dict):
     global data_changed_bool
     with get_lock(key):
-        store[key] = value
+        log_write("PUT", key, body["value"])
+        store[key] = body["value"]
         data_changed_bool = True
+    return {"status": "stored"}
 
-def local_get(key):
+@app.get("/_local/{key}")
+def local_get(key: str):
     with get_lock(key):
-        return store.get(key)
+        val = store.get(key)
+    if val is None:
+        raise HTTPException(status_code=404)
+    return {"value": val}
 
-def local_delete(key):
+@app.delete("/_local/{key}")
+def local_delete(key: str):
     global data_changed_bool
     with get_lock(key):
         if key not in store:
-            return False
+            raise HTTPException(status_code=404)
+        log_write("DELETE", key)
         del store[key]
         data_changed_bool = True
-        return True
+    return {"status": "deleted"}
 
+# Routing.
+def forward(node, method, key, body=None):
+    try:
+        if method == "GET":
+            return session.get(f"{node}/_local/{key}", timeout=2).json()
+        elif method == "POST":
+            return session.post(f"{node}/_local/{key}", json=body, timeout=2).json()
+        elif method == "DELETE":
+            return session.delete(f"{node}/_local/{key}", timeout=2).json()
+    except Exception as e:
+        raise HTTPException(500, f"Forward failed: {e}")
 
-def route_request(method, key, body=None):
+# Making the calls to the FastAPI thingy.
+@app.post("/{key}")
+def put(key: str, body: dict):
     node = hash_ring.get_node(key)
 
     if node == SELF:
-        return None
+        return local_put(key, body)
 
-    try:
-        if method == "GET":
-            return requests.get(f"{node}/{key}", timeout=10).json()
-        elif method == "POST":
-            return requests.post(f"{node}/{key}", json=body, timeout=10).json()
-        elif method == "DELETE":
-            return requests.delete(f"{node}/{key}", timeout=10).json()
-    except:
-        raise HTTPException(status_code=500, detail="Forwarding failed")
+    return forward(node, "POST", key, body)
 
-# Making the calls to the FastAPI thingy.
+
 @app.get("/{key}")
-def http_get(key: str):
-    routed = route_request("GET", key)
-    if routed is not None:
-        return routed
+def get(key: str):
+    node = hash_ring.get_node(key)
 
-    value = local_get(key)
-    if value is None:
-        logging.info("GET key=%s hit=%s", key, value is not None)
-        raise HTTPException(status_code=404, detail="Key not found")
+    if node == SELF:
+        return local_get(key)
 
-    return {"value": value}
-
-
-@app.post("/{key}")
-def http_put(key: str, body: dict):
-    if "value" not in body:
-        raise HTTPException(status_code=400, detail="Missing value")
-
-    routed = route_request("POST", key, body)
-    if routed is not None:
-        return routed
-
-    local_put(key, body["value"])
-    logging.info("PUT key=%s", key)
-    return {"status": "stored"}
+    return forward(node, "GET", key)
 
 
 @app.delete("/{key}")
-def http_delete(key: str):
-    routed = route_request("DELETE", key)
-    if routed is not None:
-        return routed
+def delete(key: str):
+    node = hash_ring.get_node(key)
 
-    success = local_delete(key)
-    if not success:
-        raise HTTPException(status_code=404, detail="Key not found")
+    if node == SELF:
+        return local_delete(key)
 
-    logging.info("DEL key=%s existed=%s", key, success)
-    return {"status": "deleted"}
+    return forward(node, "DELETE", key)
