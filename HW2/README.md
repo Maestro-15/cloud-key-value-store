@@ -24,5 +24,7 @@ pip install -r requirements.txt
 
 ## How to run it
 
-uvicorn server:app --port 8080
+python -m venv venv
+venv\Scripts\activate
+python -m uvicorn server:app --port 8001
 pything benchmark.py
