@@ -1,0 +1,7 @@
+[Last 3 seconds] Throughput: 84.40 ops/sec, Avg Latency: 0.03545 sec/ops
+
+Final Results:
+Total operations: 600
+Total time: 3.18 seconds
+Throughput: 188.66 operations per second
+Average Latency: 0.01151 seconds per operation
