@@ -163,11 +163,11 @@ def local_delete(key: str):
 def forward(node, method, key, body=None):
     try:
         if method == "GET":
-            return session.get(f"{node}/_local/{key}", timeout=2).json()
+            return session.get(f"{node}/_local/{key}", timeout=3).json()
         elif method == "POST":
-            return session.post(f"{node}/_local/{key}", json=body, timeout=2).json()
+            return session.post(f"{node}/_local/{key}", json=body, timeout=3).json()
         elif method == "DELETE":
-            return session.delete(f"{node}/_local/{key}", timeout=2).json()
+            return session.delete(f"{node}/_local/{key}", timeout=3).json()
     except Exception as e:
         raise HTTPException(500, f"Forward failed: {e}")
 
