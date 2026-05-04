@@ -13,7 +13,8 @@ Failed operations: 44\
 Total time: 8.0175 seconds\
 Throughput: 6230.83 operations per second\
 Average Latency: 5.3388 ms\
-Error Rate: 0.088 %\
+Error Rate: 0.088 %  
+
 
 
 Starting KV store benchmark\
@@ -28,7 +29,8 @@ Failed operations: 47\
 Total time: 7.2188 seconds\
 Throughput: 6919.83 operations per second\
 Average Latency: 6.7324 ms\
-Error Rate: 0.094 %\
+Error Rate: 0.094 %  
+
 
 
 
@@ -44,7 +46,8 @@ Failed operations: 0\
 Total time: 7.2804 seconds\
 Throughput: 6867.73 operations per second\
 Average Latency: 6.9607 ms\
-Error Rate: 0.0 %\
+Error Rate: 0.0 %  
+
 
 
 
