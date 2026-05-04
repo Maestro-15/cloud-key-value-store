@@ -5,7 +5,7 @@ Starting KV store benchmark\
 Nodes: ['http://127.0.0.1:8001', 'http://127.0.0.1:8002', 'http://127.0.0.1:8003']\
 Threads: 48\
 Total operations: 50000\
-Workload: 50% set, 40% get, 10% delete\
+Workload: 50% set, 40% get, 10% delete
 
 Final Results:\
 Successful operations: 49956\
@@ -15,13 +15,13 @@ Throughput: 6230.83 operations per second\
 Average Latency: 5.3388 ms\
 Error Rate: 0.088 %  
 
-
+##
 
 Starting KV store benchmark\
 Nodes: ['http://127.0.0.1:8001', 'http://127.0.0.1:8002', 'http://127.0.0.1:8003']\
 Threads: 48\
 Total operations: 50000\
-Workload: 50% set, 40% get, 10% delete\
+Workload: 50% set, 40% get, 10% delete
 
 Final Results:\
 Successful operations: 49953\
@@ -32,13 +32,13 @@ Average Latency: 6.7324 ms\
 Error Rate: 0.094 %  
 
 
-
+##
 
 Starting KV store benchmark\
 Nodes: ['http://127.0.0.1:8001', 'http://127.0.0.1:8002', 'http://127.0.0.1:8003']\
 Threads: 48\
 Total operations: 50000\
-Workload: 50% set, 40% get, 10% delete\
+Workload: 50% set, 40% get, 10% delete
 
 Final Results:\
 Successful operations: 50000\
